@@ -1,5 +1,7 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.net.Socket;
 import java.util.Scanner;
 
@@ -7,50 +9,44 @@ public class Client {
 	private static Socket socket;
 	private static String ip = "";
 	private static int port = 0;
+	private static DataInputStream in;
+	private static DataOutputStream out;
+	private static String currentDirectory= "";
 	private static Scanner scan = new Scanner(System.in);
+	
 	public static void main(String[] args ) throws Exception 
 	{
 		// Adresse et port du serveur
 		String serverAddress = "";
 		int serverPort = 0;
+		currentDirectory = System.getProperty("user.dir");
 		
 		while(!getAddress());
-		serverAddress =ip;
+		serverAddress = ip;
 		serverPort = port;
 
 		
 		// Création d'une nouvelle connexion avec le serveur
 		socket = new Socket(serverAddress,serverPort);
-		System.out.format("Serveur lancé sur [%s:%d]", serverAddress,serverPort);
+		System.out.format("Serveur lancé sur [%s:%d] \n", serverAddress,serverPort);
 		
 		// Création d'un canal entrant pour recevoir les messages envoyés par le serveur
-		DataInputStream in = new DataInputStream(socket.getInputStream());
-		DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+		in = new DataInputStream(socket.getInputStream());
+		out = new DataOutputStream(socket.getOutputStream());
 		
 		// Attente de la réception d'un mesage envoyé par le serveur sur le canal
 		String helloMessageFromServer = in.readUTF();
 		System.out.println(helloMessageFromServer);
 		
-		//************************************************************************ A REECRIRE
 		while(true){			
 			String command = "";
-			command = scan.nextLine();			
+			command = scan.nextLine();
 			out.writeUTF(command);
 			
-			String[] commands = command.split(" ");
-			/*if (commands[0] == "exit") 
-				System.exit(0);
-			/*while(in.available() != 0){
-				String serverComs = in.readUTF();
-				if (serverComs.isEmpty()) break;
-				System.out.println(serverComs);
-			}*/
+			readCommand(command, out);			
 		}
-		//*************************************************************************
-		
-		// fermeture de la connexion avec le serveur
-		//socket.close();
 	}
+	
 	public static Boolean getAddress() 
 	{
 		System.out.println("What is your address ?");
@@ -134,6 +130,76 @@ public class Client {
 			return false;
 		}
 		return true;
+	}
+	
+	private static void readCommand(String command, DataOutputStream out) throws Exception
+	{	
+		String[] commands = command.split(" ",2);
+		
+		
+		switch (commands[0]) // need to write the function for the commands
+		{ 
+		case "cd":
+			//cd(commands[1]);
+			break;
+			
+		case"ls":
+			//ls(commands[1]);
+			break;
+			
+		case "mkdir":
+			String mkdirConfirmation = in.readUTF();
+			System.out.println(mkdirConfirmation);
+			break;
+			
+		case "upload":
+			upload(commands[1]);
+			break;
+			
+		case "download":
+			//download(commands[1]);
+			break;
+			
+		case "exit":
+			exit();
+			break;
+			
+			default:
+				out.writeUTF("Unknown command : " + commands[0]);
+				out.flush();
+				break;
+		}
+	}
+	private static void exit() throws Exception
+	{
+		System.out.print("\nVous avez été déconnecté avec succès.");
+		socket.close();
+		in.close();
+		out.close();
+		System.exit(0);
+		
+	}
+	
+	private static void upload(String filename) throws Exception
+	{
+		File inputFile = new File(currentDirectory + "\\" + filename);
+		long fileLength = inputFile.length();
+		out.writeLong(fileLength);
+		
+		FileInputStream inputStream = new FileInputStream(inputFile);
+		byte[] buffer = new byte[4096];
+		int bytesNumber;
+		while((bytesNumber = inputStream.read(buffer)) > 0){
+			out.write(buffer,0,bytesNumber);			
+		}
+		out.flush();
+
+		inputStream.close();
+		System.out.print("\nInput stream closed");
+		
+		String uploadConfirmation = in.readUTF();
+		System.out.println(uploadConfirmation);
+		
 	}
 	
 }

@@ -1,10 +1,12 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 public class ClientHandler extends Thread { // Pour traiter la demande de chaque client sur un socket particulier
 	
@@ -24,17 +26,18 @@ public class ClientHandler extends Thread { // Pour traiter la demande de chaque
 	
 	public void run()
 	{
-		try 
+		try
 		{
-			System.out.print("Entered run function");
-			DataInputStream in = new DataInputStream(socket.getInputStream());	
-			DataOutputStream out = new DataOutputStream(socket.getOutputStream());// cr�ation du canal d'envoi
+			this.in = new DataInputStream(socket.getInputStream());	
+			this.out = new DataOutputStream(socket.getOutputStream());// cr�ation du canal d'envoi
 			out.writeUTF("Hello from server - you are client #"+ clientNumber);// envoi de message
-			readCommand(in.readUTF().toString());
+			while(true) {				
+				readCommand(in.readUTF().toString());
+			}
 		}
 		catch(Exception e) 
 		{
-			System.out.println("Error handling client#"+ clientNumber + ":" + e);
+			System.out.println("\nError handling client#"+ clientNumber + ": " + e);
 		}
 		finally 
 		{
@@ -44,7 +47,7 @@ public class ClientHandler extends Thread { // Pour traiter la demande de chaque
 			}
 			catch(IOException e)
 			{
-				System.out.println("Couldn't close the socket");
+				System.out.println("\nCouldn't close the socket");
 			}
 			System.out.println("\nConnection with client #" + clientNumber + " closed");
 		}
@@ -56,10 +59,10 @@ public class ClientHandler extends Thread { // Pour traiter la demande de chaque
 	}
 
 	private void readCommand(String command) throws Exception
-	{	
+	{
 		String[] commands = command.split(" ",2);
 		
-		System.out.print("["+socket.getInetAddress()+ ":" +socket.getLocalPort()+ ":" + socket.getPort()+getTime() +"] "+command); //lequel use entre local et port
+		System.out.print("["+socket.getInetAddress()+":" + socket.getPort()+" - "+getTime() +"] "+command +"\n");
 		
 		switch (commands[0]) // need to write the function for the commands
 		{ 
@@ -83,34 +86,24 @@ public class ClientHandler extends Thread { // Pour traiter la demande de chaque
 			download(commands[1]);
 			break;
 			
-		case "exit":
-			exit();
-			break;
-			
 			default:
 				out.writeUTF("Unknown command : " + commands[0]);
 				out.flush();
 				break;
 		}
 	}
-	private void exit() throws Exception
-	{		
-		socket.close();
-		System.out.print("Vous avez été déconnecté avec succès.");
-		//in.close(); cause des erreurs
-		//out.close(); cause des erreurs
-	}
-	private void mkdir(String commands) throws Exception // a test
+	
+	private void mkdir(String fileName) throws Exception
 	{
-		File directory = new File(currentDirectory + "\\" + commands);
+		File directory = new File(currentDirectory + "\\" + fileName);
 		if( directory.exists()) 
 		{
-			 throw new Exception ("Directory already exists");	 
+			out.writeUTF("Directory already exists");	 
 		}
 		else 
 		{
 			directory.mkdirs();
-			out.writeUTF("Folder " + commands + "has been created");
+			out.writeUTF("Le dossier " + fileName + " a été créé."); 
 			out.flush();
 		}
 	}
@@ -118,9 +111,24 @@ public class ClientHandler extends Thread { // Pour traiter la demande de chaque
 	{
 		
 	}
-	private void upload(String commands) 
+	private void upload(String filename) throws Exception
 	{
+		File outputFile = new File(currentDirectory + "\\" + filename);
+		FileOutputStream outputStream = new FileOutputStream(outputFile);
+		final int bufferLength = 4096;
+		byte[] buffer = new byte[bufferLength];
+		int bytesNumber;
+		long fileLength = in.readLong();
 		
+		while(fileLength > 0) {
+			bytesNumber = in.read(buffer);
+			outputStream.write(buffer,0,bytesNumber);
+			fileLength = fileLength - bufferLength;
+		}
+		
+		outputStream.close();
+		System.out.print("\nOutput stream closed");
+		out.writeUTF("\nLe fichier " + filename + " à bien été téléversé.");		
 	}
 	private void cd(String commands) 
 	{
