@@ -1,12 +1,12 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.concurrent.TimeUnit;
 
 public class ClientHandler extends Thread { // Pour traiter la demande de chaque client sur un socket particulier
 	
@@ -107,10 +107,24 @@ public class ClientHandler extends Thread { // Pour traiter la demande de chaque
 			out.flush();
 		}
 	}
-	private void download(String commands) 
+	private void download(String filename) throws Exception 
 	{
+		File inputFile = new File(currentDirectory + "\\" + filename);
+		long fileLength = inputFile.length();
+		out.writeLong(fileLength);
 		
+		FileInputStream inputStream = new FileInputStream(inputFile);
+		byte[] buffer = new byte[4096];
+		int bytesNumber;
+		while((bytesNumber = inputStream.read(buffer)) > 0){
+			out.write(buffer,0,bytesNumber);			
+		}
+		inputStream.close();
+		Thread.sleep(200);
+		System.out.print("\nInput stream closed");
+		out.writeUTF("\nLe fichier " + filename + " à bien été téléchargé.");		
 	}
+	
 	private void upload(String filename) throws Exception
 	{
 		File outputFile = new File(currentDirectory + "\\" + filename);
@@ -127,7 +141,6 @@ public class ClientHandler extends Thread { // Pour traiter la demande de chaque
 		}
 		
 		outputStream.close();
-		System.out.print("\nOutput stream closed");
 		out.writeUTF("\nLe fichier " + filename + " à bien été téléversé.");		
 	}
 	private void cd(String commands) 

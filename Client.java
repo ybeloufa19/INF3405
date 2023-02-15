@@ -2,6 +2,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.net.Socket;
 import java.util.Scanner;
 
@@ -50,85 +51,91 @@ public class Client {
 	public static Boolean getAddress() 
 	{
 		System.out.println("What is your address ?");
-		ip = getIp();
-		port = getPort();
 		
-		Boolean isIpValid = validateIP(ip);
-		Boolean isPortValid = validatePort(port);
+		Boolean isIpValid;
+		Boolean isPortValid;
+		
+		do {
+			ip = getIp();
+		} while(!(isIpValid = validateIP(ip)));
+		
+		do {
+			port = getPort();
+		} while(!(isPortValid = validatePort(port)));
 
 		return(isIpValid && isPortValid);
-	}
-	
-	
+	}	
 	
 	public static String getIp() 
 	{
 		String ip = "";
-		int octet ;
 		System.out.println("Enter Ip ex :127.0.0.1") ;
 		System.out.println("IP :");
-		ip = scan.nextLine();
-		String[] input = ip.split("[.]",4+1);
-		
-		for(int i = 0; i<4;i++)	
-		{	
-			try 
-			{
-				 octet = Byte.parseByte(input[i]);
-				
-			}
-			catch(Exception e) 
-			{
-				System.out.println(" You have entered " +input[i] +" that is not a valid number");
-			}
-		}
+		ip = scan.nextLine();	
 		
 		return ip;
 	}
 	public static Boolean validateIP(String ip) 
 	{
-		String[] octetIp = ip.split("[.]",4+1);
+		String[] octetIp = ip.split("[.]");
+		if(octetIp.length != 4) {
+			System.out.println("The IP address doesn't follow the format XX.XX.XX.XX" );
+			return false;
+		}
 		for(int i = 0; i<4;i++)	
 		{
-			int ipInt = Integer.parseInt(octetIp[i]);
-		
-			if (ipInt < 0 || ipInt> 255 ) 
+			try 
 			{
-				System.out.println(" the number "+ ipInt +" is not between 0 and 255" );
+				int ipInt = Integer.parseInt(octetIp[i]);
+				if (ipInt < 0 || ipInt> 255 ) 
+				{
+					System.out.println("The number "+ ipInt +" is not between 0 and 255" );
+					return false;
+				}
+			}
+			catch(Exception e) 
+			{
+				System.out.println("\n" + ip +" is not a valid IP");
 				return false;
 			}
+			
+		
+			
 		}
 		return true;
 	}
 	
 	public static int getPort() 
 	{
-		int port = 0;
 		System.out.println("Enter Port between 5000 and 5050 :") ;
 		System.out.println("Port : ");
 		String portInput  = scan.nextLine();
-		
-				try 
-				{
-					port = Integer.parseInt(portInput);
-				}
-				catch(Exception e) 
-				{
-
-						System.out.println(port +" must be a valid number");
-
-				}
-				
+		int port = -150000;
+		try 
+		{
+			port = Integer.parseInt(portInput);
+		}
+		catch(Exception e) 
+		{
+				System.out.println(portInput +" is not a valid input");
+		}
 		return port;
+				
 	}	
 	
 	public static Boolean validatePort(int port)
 	{
-		if (port < 5000 || port > 5050 ) 
-		{
-			System.out.println(" the number "+ port +" is not between 5000 and 5050" );
+		if (port == -150000) {
 			return false;
 		}
+		
+		if (port < 5000 || port > 5050 ) 
+		{
+			System.out.println("The number "+ port +" is not between 5000 and 5050" );
+			return false;
+		}
+		
+		
 		return true;
 	}
 	
@@ -141,6 +148,10 @@ public class Client {
 		{ 
 		case "cd":
 			//cd(commands[1]);
+			if(commands.length < 2) {
+				System.out.println("Il manque 1 argument pour la commande cd");
+				break;
+			}
 			break;
 			
 		case"ls":
@@ -148,16 +159,28 @@ public class Client {
 			break;
 			
 		case "mkdir":
+			if(commands.length < 2) {
+				System.out.println("Il manque 1 argument pour la commande mkdir");
+				break;
+			}
 			String mkdirConfirmation = in.readUTF();
 			System.out.println(mkdirConfirmation);
 			break;
 			
 		case "upload":
+			if(commands.length < 2) {
+				System.out.println("Il manque 1 argument pour la commande upload");
+				break;
+			}
 			upload(commands[1]);
 			break;
 			
 		case "download":
-			//download(commands[1]);
+			if(commands.length < 2) {
+				System.out.println("Il manque 1 argument pour la commande download");
+				break;
+			}
+			download(commands[1]);
 			break;
 			
 		case "exit":
@@ -192,15 +215,33 @@ public class Client {
 		while((bytesNumber = inputStream.read(buffer)) > 0){
 			out.write(buffer,0,bytesNumber);			
 		}
-		out.flush();
 
 		inputStream.close();
-		System.out.print("\nInput stream closed");
 		
 		String uploadConfirmation = in.readUTF();
 		System.out.println(uploadConfirmation);
 		
 	}
-	
+	private static void download(String filename) throws Exception
+	{
+		File outputFile = new File(currentDirectory + "\\" + filename);
+		FileOutputStream outputStream = new FileOutputStream(outputFile);
+		final int bufferLength = 4096;
+		byte[] buffer = new byte[bufferLength];
+		int bytesNumber;
+		long fileLength = in.readLong();
+		
+		while(fileLength > 0) {
+			bytesNumber = in.read(buffer);
+			outputStream.write(buffer,0,bytesNumber);
+			fileLength = fileLength - bufferLength;
+			System.out.print("\n"+fileLength);
+		}
+		
+		outputStream.close();
+		System.out.print("\nOutput stream closed");
+		String uploadConfirmation = in.readUTF();
+		System.out.println(uploadConfirmation);		
+	}
 }
 

@@ -21,7 +21,7 @@ public class Server {
 		String serverAddress = "";
 		int serverPort = 0;
 		
-		while(!getAddress());
+		getAddress();
 		
 		serverAddress =ip;
 		serverPort = port;
@@ -60,11 +60,17 @@ public class Server {
 	public static Boolean getAddress() 
 	{
 		System.out.println("What is your address ?");
-		ip = getIp();
-		port = getPort();
 		
-		Boolean isIpValid = validateIP(ip);
-		Boolean isPortValid = validatePort(port);
+		Boolean isIpValid;
+		Boolean isPortValid;
+		
+		do {
+			ip = getIp();
+		} while(!(isIpValid = validateIP(ip)));
+		
+		do {
+			port = getPort();
+		} while(!(isPortValid = validatePort(port)));
 
 		return(isIpValid && isPortValid);
 	}
@@ -74,72 +80,70 @@ public class Server {
 	public static String getIp() 
 	{
 		String ip = "";
-		int octet ;
 		System.out.println("Enter Ip ex :127.0.0.1") ;
 		System.out.println("IP :");
-		ip = scan.nextLine();
-		String[] input = ip.split("[.]",4+1);
-		
-		for(int i = 0; i<4;i++)	
-		{	
-			try 
-			{
-				 octet = Integer.parseInt(input[i]);
-				
-			}
-			catch(Exception e) 
-			{
-				System.out.println(" You have entered " +input[i] +" that is not a valid number");
-			}
-
-		}
+		ip = scan.nextLine();	
 		
 		return ip;
 	}
 	public static Boolean validateIP(String ip) 
 	{
-		String[] octetIp = ip.split("[.]",4+1);
+		String[] octetIp = ip.split("[.]");
+		if(octetIp.length != 4) {
+			System.out.println("The IP address doesn't follow the format XX.XX.XX.XX" );
+			return false;
+		}
 		for(int i = 0; i<4;i++)	
 		{
-			int ipInt = Integer.parseInt(octetIp[i]);
-		
-			if (ipInt < 0 || ipInt> 255 ) 
+			try 
 			{
-				System.out.println(" the number "+ ipInt +" is not between 0 and 255" );
-				return false;
+				int ipInt = Integer.parseInt(octetIp[i]);
+				if (ipInt < 0 || ipInt> 255 ) 
+				{
+					System.out.println("The number "+ ipInt +" is not between 0 and 255" );
+					return false;
+				}
 			}
+			catch(Exception e) 
+			{
+				System.out.println("\n" + ip +" is not a valid IP");
+				return false;
+			}			
 		}
 		return true;
 	}
 	
 	public static int getPort() 
 	{
-		int port = 0;
 		System.out.println("Enter Port between 5000 and 5050 :") ;
 		System.out.println("Port : ");
 		String portInput  = scan.nextLine();
-		
-				try 
-				{
-					port = Integer.parseInt(portInput);
-				}
-				catch(Exception e) 
-				{
-
-						System.out.println(port +" must be a valid number");
-
-				}
-				
+		int port = -150000;
+		try 
+		{
+			port = Integer.parseInt(portInput);
+		}
+		catch(Exception e) 
+		{
+				System.out.println(portInput +" is not a valid input");
+		}
 		return port;
+				
 	}	
 	
 	public static Boolean validatePort(int port)
 	{
-		if (port < 5000 || port > 5050 ) 
-		{
-			System.out.println(" the number "+ port +" is not between 5000 and 5050" );
+		if (port == -150000) {
 			return false;
 		}
+		
+		if (port < 5000 || port > 5050 ) 
+		{
+			System.out.println("The number "+ port +" is not between 5000 and 5050" );
+			return false;
+		}
+		
+		
 		return true;
 	}
 	private static String getTime()
